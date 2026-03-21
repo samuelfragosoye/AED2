@@ -6,6 +6,7 @@ class CifraCesar {
 //recebe uma string e retorna ela criptografada
 //chave 3
     static String cifraCesar(String s) {
+        //criar array de char do mesmo tamanho da string
         char[] resultado = new char[s.length()];
         
         for (int i = 0; i < s.length(); i++) {
