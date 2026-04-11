@@ -62,20 +62,19 @@ int isFim(char* s) {
 /**
  * Metodo principal para leitura e exibicao dos resultados.
  */
-int main(){
+int main() {
     char s1[500];
     char s2[500];
-    char hifen[10];
 
-    while (scanf("%s", s1)!= EOF){
-        if(isFim(s1)) break;
+    while (scanf("%s", s1) != EOF) {
+        if (isFim(s1)) break;
 
-        if(scanf("%s %s", hifen, s2) != EOF){
-            if(isAnagrama(s1, s2)){
-                printf("SIM\n");
-            } else{
-                printf("NÃO\n");
-            }
+        scanf("%s", s2);  // Le a segunda palavra diretamente
+
+        if (isAnagrama(s1, s2)) {
+            printf("SIM\n");
+        } else {
+            printf("NAO\n");
         }
     }
     return 0;
