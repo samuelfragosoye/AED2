@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 //data
 typedef struct{
@@ -174,22 +175,96 @@ Colecao_Restaurantes* ler_csv() {
     ler_csv_colecao(colecao, "/tmp/restaurantes.csv");
     return colecao;
 }
- //main
- int main(){
-    Colecao_Restaurantes* base = ler_csv();
-    int id_procurado;
-    scanf("%d", &id_procurado);
 
-    while (id_procurado != -1){
-        for(int i = 0; i<base->tamanho; i++){
-            if(base->restaurantes[i]->id == id_procurado){
-                char buffer[1024];
-                formatar_restaurante(base->restaurantes[i], buffer);
-                printf("%s\n", buffer);
+void quicksort(Restaurante** array, int esq, int dir, int* comp, int* mov) {
+    int i = esq, j = dir;
+    Restaurante* pivo = array[(esq + dir) / 2];
+
+    while (i <= j) {
+
+        (*comp)++;
+        while (array[i]->avaliacao < pivo->avaliacao ||
+          (array[i]->avaliacao == pivo->avaliacao && strcmp(array[i]->nome, pivo->nome) < 0)) {
+          i++;
+          (*comp)++;
+        }
+
+        (*comp)++;
+        while (array[j]->avaliacao > pivo->avaliacao ||
+          (array[j]->avaliacao == pivo->avaliacao && strcmp(array[j]->nome, pivo->nome) > 0)) {
+          j--;
+          (*comp)++;
+        }
+
+        if (i <= j) {
+            Restaurante* temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+            (*mov) += 3;
+            i++;
+            j--;
+        }
+    }
+    if (esq < j) quicksort(array, esq, j, comp, mov);
+    if (i < dir) quicksort(array, i, dir, comp, mov);
+}
+
+bool busca_binaria(Restaurante** array, int n, char* nome, int* comparacoes){
+    int esq = 0, dir = n - 1;
+ 
+    while (esq <= dir){
+        int meio = (esq + dir) / 2;
+        (*comparacoes)++;
+        int cmp = strcmp(array[meio]->nome, nome);
+ 
+        if (cmp == 0)       return true;
+        else if (cmp < 0)   esq = meio + 1;
+        else                dir = meio - 1;
+    }
+    return false;
+}
+
+void gerar_log_quicksort(int comp, int mov, double tempo) {
+    FILE* arq = fopen("902665_quicksort.txt", "w");
+    if(arq != NULL){
+        fprintf(arq, "902665\t%d\t%d\t%f", comp, mov, tempo);
+        fclose(arq);
+    }
+}
+
+ //main
+ int main() {
+    Colecao_Restaurantes* base = ler_csv();
+    Restaurante* selecionados[1000];
+    int n_selecionados = 0;
+    int id_procurado;
+
+    while (scanf("%d", &id_procurado) == 1 && id_procurado != -1) {
+        for (int i = 0; i < base->tamanho; i++) {
+            if (base->restaurantes[i]->id == id_procurado) {
+                selecionados[n_selecionados++] = base->restaurantes[i];
                 break;
             }
         }
-        scanf("%d", &id_procurado);
     }
+
+    int total_comp = 0, total_mov = 0;
+    clock_t inicio = clock();
+    
+    if (n_selecionados > 0) {
+        quicksort(selecionados, 0, n_selecionados - 1, &total_comp, &total_mov);
+    }
+
+    clock_t fim = clock();
+    double tempo_total = ((double)(fim - inicio)) / CLOCKS_PER_SEC * 1000.0;
+
+    char buffer[1024];
+    for (int i = 0; i < n_selecionados; i++) {
+        formatar_restaurante(selecionados[i], buffer);
+        printf("%s\n", buffer);
+    }
+
+    gerar_log_quicksort(total_comp, total_mov, tempo_total);
+
     return 0;
- }
+}

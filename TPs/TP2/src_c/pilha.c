@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 //data
 typedef struct{
@@ -174,22 +175,85 @@ Colecao_Restaurantes* ler_csv() {
     ler_csv_colecao(colecao, "/tmp/restaurantes.csv");
     return colecao;
 }
+
+typedef struct {
+    Restaurante** itens;
+    int topo;
+    int capacidade;
+} Pilha;
+
+Pilha* criar_pilha(int cap) {
+    Pilha* p = (Pilha*) malloc(sizeof(Pilha));
+    p->itens = (Restaurante**) malloc(cap * sizeof(Restaurante*));
+    p->topo = 0;
+    p->capacidade = cap;
+    return p;
+}
+
+void empilhar(Pilha* p, Restaurante* r) {
+    if (p->topo < p->capacidade) {
+        p->itens[p->topo++] = r;
+    }
+}
+
+Restaurante* desempilhar(Pilha* p) {
+    if (p->topo > 0) {
+        return p->itens[--p->topo];
+    }
+    return NULL;
+}
+
+void gerar_log_counting(int comp, int mov, double tempo){
+    FILE* arq = fopen("902665_pilha.txt", "w");
+    if(arq != NULL){
+        fprintf(arq, "902665\t%d\t%d\t%f",comp,mov,tempo);
+        fclose(arq);
+    }
+}
+
  //main
  int main(){
     Colecao_Restaurantes* base = ler_csv();
-    int id_procurado;
-    scanf("%d", &id_procurado);
+    Pilha* pilha = criar_pilha(1000);
+    int id;
 
-    while (id_procurado != -1){
-        for(int i = 0; i<base->tamanho; i++){
-            if(base->restaurantes[i]->id == id_procurado){
-                char buffer[1024];
-                formatar_restaurante(base->restaurantes[i], buffer);
-                printf("%s\n", buffer);
+
+    while (scanf("%d", &id) == 1 && id != -1) {
+        for (int i = 0; i < base->tamanho; i++) {
+            if (base->restaurantes[i]->id == id) {
+                empilhar(pilha, base->restaurantes[i]);
                 break;
             }
         }
-        scanf("%d", &id_procurado);
     }
+
+    int n;
+    scanf("%d", &n);
+    for (int i = 0; i < n; i++) {
+        char comando[3];
+        scanf("%s", comando);
+
+        if (strcmp(comando, "I") == 0) {
+            scanf("%d", &id);
+            for (int j = 0; j < base->tamanho; j++) {
+                if (base->restaurantes[j]->id == id) {
+                    empilhar(pilha, base->restaurantes[j]);
+                    break;
+                }
+            }
+        } else if (strcmp(comando, "R") == 0) {
+            Restaurante* removido = desempilhar(pilha);
+            if (removido != NULL) {
+                printf("(R)%s\n", removido->nome); // Saída de remoção 
+            }
+        }
+    }
+
+    char buffer[1024];
+    for (int i = pilha->topo - 1; i >= 0; i--) {
+        formatar_restaurante(pilha->itens[i], buffer);
+        printf("%s\n", buffer);
+    }
+    
     return 0;
  }

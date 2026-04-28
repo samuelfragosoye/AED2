@@ -1,6 +1,9 @@
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 class Data {
     private int dia;
@@ -143,9 +146,6 @@ class Restaurante {
 }
 
 class ColecaoRestaurante {
-    public double now() {
-    return (double) System.nanoTime();
-}
     private Restaurante[] restaurantes;
     private int tamanho;
 
@@ -154,8 +154,18 @@ class ColecaoRestaurante {
         this.tamanho = 0;
     }
 
+    public double now() {
+    return (double) System.nanoTime();
+    }
+
     public int getTamanho(){return tamanho;}
     public Restaurante[] getRestaurantes(){return restaurantes;}
+
+    public void adicionar(Restaurante r) {
+        if (tamanho < restaurantes.length) {
+            restaurantes[tamanho++] = r;
+        }
+    }
 
     public void lerCsv(String path){
         try{
@@ -181,26 +191,72 @@ class ColecaoRestaurante {
         colecao.lerCsv("/tmp/restaurantes.csv");
         return colecao;
     }
+
+    public void Insercao(){
+    int comparacoes   = 0;
+    int movimentacoes = 0;
+    double inicio, fim;
+
+    inicio=now();
+
+    for (int i = 1; i < tamanho; i++){
+        Restaurante pivo = restaurantes[i];
+        movimentacoes++;
+        int j = i -1;
+
+        while(j>=0){
+            comparacoes++;
+            if (restaurantes[j].getCidade().compareTo(pivo.getCidade()) > 0) {
+                restaurantes[j + 1] = restaurantes[j];
+                movimentacoes++;
+                j--;
+            } else{
+                break;
+            }
+        }
+        restaurantes[j+1] = pivo;
+        movimentacoes++;
+    }
+    fim = now();
+    double tempoTotal = (fim - inicio)/1000000.0;
+    gerarLog(comparacoes, movimentacoes,tempoTotal);
 }
 
-public class Main {
-    public static void main(String[] args){
+    public void gerarLog(int comp, int mov, double tempo){
+    try{
+        PrintWriter writer = new PrintWriter(new FileWriter("902665_insercao.txt"));
+        writer.printf("902665\t%d\t%d\t%f", comp, mov, tempo);
+        writer.close();
+    } catch (IOException e){
+        System.out.println("Erro ao salvar o log");
+    }
+    }
+}
+
+public class Insercao {
+    public static void main(String[] args) {
         ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
-        Restaurante[] todos = baseDeDados.getRestaurantes();
+        ColecaoRestaurante listaParaOrdenar = new ColecaoRestaurante(1000);
 
         Scanner sc = new Scanner(System.in);
-        int idProcurado = sc.nextInt();
+        
+        while (sc.hasNextInt()) {
+            int id = sc.nextInt();
+            if (id == -1) break;
 
-        while (idProcurado != -1){
-            for(int i = 0; i < baseDeDados.getTamanho(); i++){
-                if(todos[i].getId() == idProcurado){
-                    System.out.println(todos[i].formatar());
+            for (int i = 0; i < baseDeDados.getTamanho(); i++) {
+                if (baseDeDados.getRestaurantes()[i].getId() == id) {
+                    listaParaOrdenar.adicionar(baseDeDados.getRestaurantes()[i]);
                     break;
                 }
             }
-            idProcurado = sc.nextInt();
+        }
+
+        listaParaOrdenar.Insercao();
+
+        for (int i = 0; i < listaParaOrdenar.getTamanho(); i++) {
+            System.out.println(listaParaOrdenar.getRestaurantes()[i].formatar());
         }
         sc.close();
     }
 }
-

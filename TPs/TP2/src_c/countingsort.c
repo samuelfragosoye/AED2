@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 //data
 typedef struct{
@@ -174,22 +175,80 @@ Colecao_Restaurantes* ler_csv() {
     ler_csv_colecao(colecao, "/tmp/restaurantes.csv");
     return colecao;
 }
+
+void counting_sort(Restaurante** array, int n, int* mov) {
+    if (n <= 0) return;
+
+    int k = array[0]->capacidade;
+    for (int i = 1; i < n; i++) {
+        if (array[i]->capacidade > k) k = array[i]->capacidade;
+    }
+
+    int* count = (int*) calloc(k + 1, sizeof(int));
+    Restaurante** output = (Restaurante**) malloc(n * sizeof(Restaurante*));
+
+    for (int i = 0; i < n; i++) {
+        count[array[i]->capacidade]++;
+    }
+
+    for (int i = 1; i <= k; i++) {
+        count[i] += count[i - 1];
+    }
+
+    for (int i = n - 1; i >= 0; i--) {
+        output[count[array[i]->capacidade] - 1] = array[i];
+        count[array[i]->capacidade]--;
+        (*mov)++; 
+    }
+
+    for (int i = 0; i < n; i++) {
+        array[i] = output[i];
+        (*mov)++; 
+    }
+
+    free(count);
+    free(output);
+}
+
+void gerar_log_counting(int comp, int mov, double tempo){
+    FILE* arq = fopen("902665_countingsort.txt", "w");
+    if(arq != NULL){
+        fprintf(arq, "902665\t%d\t%d\t%f",comp,mov,tempo);
+        fclose(arq);
+    }
+}
+
  //main
  int main(){
     Colecao_Restaurantes* base = ler_csv();
+    Restaurante* selecionados[1000];
+    int n_selecionados=0;
     int id_procurado;
-    scanf("%d", &id_procurado);
 
-    while (id_procurado != -1){
-        for(int i = 0; i<base->tamanho; i++){
+
+    while (scanf("%d", &id_procurado)==1 && id_procurado != -1){
+        for (int i = 0; i<base->tamanho; i++){
             if(base->restaurantes[i]->id == id_procurado){
-                char buffer[1024];
-                formatar_restaurante(base->restaurantes[i], buffer);
-                printf("%s\n", buffer);
+                selecionados[n_selecionados++]=base->restaurantes[i];
                 break;
             }
         }
-        scanf("%d", &id_procurado);
     }
+
+    int comp = 0, mov = 0;
+    clock_t inicio=clock();
+
+    counting_sort(selecionados, n_selecionados, &mov);
+    
+    clock_t fim = clock();
+    double tempo_total = ((double)(fim-inicio)) / CLOCKS_PER_SEC * 1000.0;
+
+    char buffer[1024];
+    for(int i=0; i<n_selecionados; i++){
+        formatar_restaurante(selecionados[i], buffer);
+        printf("%s\n", buffer);
+    }
+    gerar_log_counting(comp, mov, tempo_total);
+    
     return 0;
  }

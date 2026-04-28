@@ -1,6 +1,9 @@
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 class Data {
     private int dia;
@@ -143,9 +146,6 @@ class Restaurante {
 }
 
 class ColecaoRestaurante {
-    public double now() {
-    return (double) System.nanoTime();
-}
     private Restaurante[] restaurantes;
     private int tamanho;
 
@@ -156,6 +156,12 @@ class ColecaoRestaurante {
 
     public int getTamanho(){return tamanho;}
     public Restaurante[] getRestaurantes(){return restaurantes;}
+
+    public void adicionar(Restaurante r) {
+        if (tamanho < restaurantes.length) {
+            restaurantes[tamanho++] = r;
+        }
+    }
 
     public void lerCsv(String path){
         try{
@@ -181,26 +187,89 @@ class ColecaoRestaurante {
         colecao.lerCsv("/tmp/restaurantes.csv");
         return colecao;
     }
+
+private static final int CAPACIDADE_FILA = 5;
+int inicio = 0;
+
+public void enfileirar(Restaurante r) {
+    int pos = (inicio + tamanho) % CAPACIDADE_FILA;
+    restaurantes[pos] = r;
+    tamanho++;
 }
 
-public class Main {
-    public static void main(String[] args){
-        ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
-        Restaurante[] todos = baseDeDados.getRestaurantes();
+public Restaurante desenfileirar() {
+    Restaurante r = restaurantes[inicio];
+    inicio = (inicio + 1) % CAPACIDADE_FILA;
+    tamanho--;
+    return r;
+}
 
-        Scanner sc = new Scanner(System.in);
-        int idProcurado = sc.nextInt();
+public boolean filaCheia() {
+    return tamanho == CAPACIDADE_FILA;
+}
 
-        while (idProcurado != -1){
-            for(int i = 0; i < baseDeDados.getTamanho(); i++){
-                if(todos[i].getId() == idProcurado){
-                    System.out.println(todos[i].formatar());
+public double mediaAnoAbertura() {
+    int soma = 0;
+    for (int i = 0; i < tamanho; i++)
+        soma += restaurantes[(inicio + i) % CAPACIDADE_FILA].getDataAbertura().getAno();
+    return (double) soma / tamanho;
+}
+}
+
+public class FilaCircular {
+    public static void main(String[] args) {
+    ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
+    ColecaoRestaurante fila = new ColecaoRestaurante(5);
+    Scanner sc = new Scanner(System.in);
+
+    while (sc.hasNextInt()) {
+    int id = sc.nextInt();
+    if (id == -1) break;
+    for (int j = 0; j < baseDeDados.getTamanho(); j++) {
+        if (baseDeDados.getRestaurantes()[j].getId() == id) {
+            if (fila.filaCheia()) {
+                Restaurante removido = fila.desenfileirar();
+                System.out.println("(R)" + removido.getNome());
+            }
+            fila.enfileirar(baseDeDados.getRestaurantes()[j]);
+            System.out.println("(I)" + Math.round(fila.mediaAnoAbertura()));
+            break;
+        }
+    }
+    }
+
+    int n = sc.nextInt();
+    sc.nextLine();
+    for (int i = 0; i < n; i++) {
+        String linha = sc.nextLine().trim();
+        String[] partes = linha.split(" ");
+        String cmd = partes[0];
+
+        if (cmd.equals("I")) {
+            int id = Integer.parseInt(partes[1]);
+            if (fila.filaCheia()) {
+                Restaurante removido = fila.desenfileirar();
+                System.out.println("(R)" + removido.getNome());
+            }
+            for (int j = 0; j < baseDeDados.getTamanho(); j++) {
+                if (baseDeDados.getRestaurantes()[j].getId() == id) {
+                    fila.enfileirar(baseDeDados.getRestaurantes()[j]);
                     break;
                 }
             }
-            idProcurado = sc.nextInt();
-        }
-        sc.close();
-    }
-}
+            System.out.println("(I)" + Math.round(fila.mediaAnoAbertura()));
 
+        } else if (cmd.equals("R")) {
+    if (fila.getTamanho() > 0) {
+        Restaurante r = fila.desenfileirar();
+        System.out.println("(R)" + r.getNome());
+    }
+    }
+    }
+
+    for (int i = 0; i < fila.getTamanho(); i++)
+        System.out.println(fila.getRestaurantes()[(fila.inicio + i) % 5].formatar());
+
+    sc.close();
+}
+    }

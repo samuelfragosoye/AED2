@@ -1,6 +1,9 @@
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 class Data {
     private int dia;
@@ -143,9 +146,6 @@ class Restaurante {
 }
 
 class ColecaoRestaurante {
-    public double now() {
-    return (double) System.nanoTime();
-}
     private Restaurante[] restaurantes;
     private int tamanho;
 
@@ -156,6 +156,12 @@ class ColecaoRestaurante {
 
     public int getTamanho(){return tamanho;}
     public Restaurante[] getRestaurantes(){return restaurantes;}
+
+    public void adicionar(Restaurante r) {
+        if (tamanho < restaurantes.length) {
+            restaurantes[tamanho++] = r;
+        }
+    }
 
     public void lerCsv(String path){
         try{
@@ -181,26 +187,105 @@ class ColecaoRestaurante {
         colecao.lerCsv("/tmp/restaurantes.csv");
         return colecao;
     }
+
+    private int compHeapsort = 0;
+    private int movHeapsort = 0;
+
+    public void ordenarPorHeapsort() {
+    double inicio = System.nanoTime();
+    
+    for (int i = (tamanho / 2) - 1; i >= 0; i--) {
+        reconstruirHeap(tamanho, i);
+    }
+
+    for (int i = tamanho - 1; i > 0; i--) {
+        swap(0, i);
+        movHeapsort += 3;
+        reconstruirHeap(i, 0);
+    }
+    double fim = System.nanoTime();
+    gerarLogHeapsort(compHeapsort, movHeapsort, (fim - inicio) / 1000000.0);
+    }
+
+    private int compararParaHeapsort(Restaurante r1, Restaurante r2) {
+    compHeapsort++;
+    Data d1 = r1.getDataAbertura();
+    Data d2 = r2.getDataAbertura();
+
+    if (d1.getAno() != d2.getAno()) return d1.getAno() - d2.getAno();
+    if (d1.getMes() != d2.getMes()) return d1.getMes() - d2.getMes();
+    if (d1.getDia() != d2.getDia()) return d1.getDia() - d2.getDia();
+
+    return r1.getNome().compareTo(r2.getNome());
 }
 
-public class Main {
-    public static void main(String[] args){
-        ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
-        Restaurante[] todos = baseDeDados.getRestaurantes();
+    private void swap(int i, int j) {
+    Restaurante temp = restaurantes[i];
+    restaurantes[i] = restaurantes[j];
+    restaurantes[j] = temp;
+}
 
-        Scanner sc = new Scanner(System.in);
-        int idProcurado = sc.nextInt();
 
-        while (idProcurado != -1){
-            for(int i = 0; i < baseDeDados.getTamanho(); i++){
-                if(todos[i].getId() == idProcurado){
-                    System.out.println(todos[i].formatar());
-                    break;
-                }
+private void reconstruirHeap(int tam, int i) {
+    int maior = i;
+    int esq = 2 * i + 1;
+    int dir = 2 * i + 2;
+
+    if (esq < tam && compararParaHeapsort(restaurantes[esq], restaurantes[maior]) > 0) {
+        maior = esq;
+    }
+
+    if (dir < tam && compararParaHeapsort(restaurantes[dir], restaurantes[maior]) > 0) {
+        maior = dir;
+    }
+
+    if (maior != i) {
+        swap(i, maior);
+        movHeapsort += 3;
+        reconstruirHeap(tam, maior);
+    }
+}
+
+    public void gerarLogHeapsort(int comp, int mov, double tempo) {
+    try {
+        PrintWriter writer = new PrintWriter(new FileWriter("902665_heapsort.txt"));
+        writer.printf("902665\t%d\t%d\t%f", comp, mov, tempo);
+        writer.close();
+    } catch (IOException e) {
+        System.out.println("Erro ao salvar o log");
+    }
+}
+}
+
+
+public class Heapsort {
+    public static void main(String[] args) {
+    ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
+    ColecaoRestaurante listaParaOrdenar = new ColecaoRestaurante(1000);
+    Scanner sc = new Scanner(System.in);
+
+    while (sc.hasNextInt()) {
+        int id = sc.nextInt();
+        if (id == -1) break;
+        for (int i = 0; i < baseDeDados.getTamanho(); i++) {
+            if (baseDeDados.getRestaurantes()[i].getId() == id) {
+                listaParaOrdenar.adicionar(baseDeDados.getRestaurantes()[i]);
+                break;
             }
-            idProcurado = sc.nextInt();
         }
-        sc.close();
+    }
+
+    int[] comp = {0}, mov = {0};
+    double inicio = System.nanoTime();
+
+    listaParaOrdenar.ordenarPorHeapsort();
+
+    double tempo = (System.nanoTime() - inicio) / 1000000.0;
+
+    for (int i = 0; i < listaParaOrdenar.getTamanho(); i++){
+        System.out.println(listaParaOrdenar.getRestaurantes()[i].formatar());
+    }
+    sc.close();
     }
 }
 

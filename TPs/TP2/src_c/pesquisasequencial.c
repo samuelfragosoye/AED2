@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 //data
 typedef struct{
@@ -174,22 +175,86 @@ Colecao_Restaurantes* ler_csv() {
     ler_csv_colecao(colecao, "/tmp/restaurantes.csv");
     return colecao;
 }
+
+void selecao(Restaurante** array, int n, int* comparacoes, int* movimentacoes){
+    for(int i=0; i<(n-1); i++){
+        int menor = i;
+        for(int j = (i+1); j<n; j++){
+            (*comparacoes)++;
+            if(strcmp(array[j]->nome, array[menor]->nome)<0){
+                menor=j;
+            }
+        }
+        Restaurante* temp = array[i];
+        array[i] = array[menor];
+        array[menor]=temp;
+        (*movimentacoes) += 3;
+    }
+}
+
+bool busca_binaria(Restaurante** array, int n, char* nome, int* comparacoes){
+    int esq = 0, dir = n - 1;
+ 
+    while (esq <= dir){
+        int meio = (esq + dir) / 2;
+        (*comparacoes)++;
+        int cmp = strcmp(array[meio]->nome, nome);
+ 
+        if (cmp == 0)       return true;
+        else if (cmp < 0)   esq = meio + 1;
+        else                dir = meio - 1;
+    }
+    return false;
+}
+
+void gerar_log(int comp, double tempo){
+    FILE* arq = fopen("902665_binaria.txt", "w");
+    if(arq != NULL){
+        fprintf(arq, "902665\t%d\t%f",comp,tempo);
+        fclose(arq);
+    }
+}
+
  //main
  int main(){
     Colecao_Restaurantes* base = ler_csv();
+    Restaurante* selecionados[1000];
+    int n_selecionados=0;
     int id_procurado;
-    scanf("%d", &id_procurado);
 
-    while (id_procurado != -1){
-        for(int i = 0; i<base->tamanho; i++){
+
+    while (scanf("%d", &id_procurado)==1 && id_procurado != -1){
+        for (int i = 0; i<base->tamanho; i++){
             if(base->restaurantes[i]->id == id_procurado){
-                char buffer[1024];
-                formatar_restaurante(base->restaurantes[i], buffer);
-                printf("%s\n", buffer);
+                selecionados[n_selecionados++]=base->restaurantes[i];
                 break;
             }
         }
-        scanf("%d", &id_procurado);
     }
+
+    int comp_ord = 0, mov_ord = 0;
+    selecao(selecionados, n_selecionados, &comp_ord, &mov_ord);
+ 
+    char nome[MAX_NOME];
+    scanf(" ");
+    
+    int total_comps = 0;
+    clock_t inicio = clock();
+ 
+    while (fgets(nome, sizeof(nome), stdin) != NULL){
+        nome[strcspn(nome, "\r\n")] = '\0';
+        if (strcmp(nome, "FIM") == 0) break;
+ 
+        if (busca_binaria(selecionados, n_selecionados, nome, &total_comps))
+            printf("SIM\n");
+        else
+            printf("NAO\n");
+    }
+ 
+    clock_t fim = clock();
+    double tempo_total = ((double)(fim - inicio)) / CLOCKS_PER_SEC * 1000.0;
+ 
+    gerar_log(total_comps, tempo_total);
+ 
     return 0;
- }
+}

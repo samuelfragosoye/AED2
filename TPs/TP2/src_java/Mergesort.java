@@ -1,6 +1,9 @@
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 class Data {
     private int dia;
@@ -143,9 +146,6 @@ class Restaurante {
 }
 
 class ColecaoRestaurante {
-    public double now() {
-    return (double) System.nanoTime();
-}
     private Restaurante[] restaurantes;
     private int tamanho;
 
@@ -156,6 +156,12 @@ class ColecaoRestaurante {
 
     public int getTamanho(){return tamanho;}
     public Restaurante[] getRestaurantes(){return restaurantes;}
+
+    public void adicionar(Restaurante r) {
+        if (tamanho < restaurantes.length) {
+            restaurantes[tamanho++] = r;
+        }
+    }
 
     public void lerCsv(String path){
         try{
@@ -181,26 +187,82 @@ class ColecaoRestaurante {
         colecao.lerCsv("/tmp/restaurantes.csv");
         return colecao;
     }
+
+    public void mergesort(int[] comparacoes, int[] movimentacoes) {
+    restaurantes = mergesortRec(restaurantes, tamanho, comparacoes, movimentacoes);
+    }
+
+    private Restaurante[] mergesortRec(Restaurante[] arr, int n, int[] comp, int[] mov) {
+    if (n <= 1) return arr;
+
+    int meio = n / 2;
+    Restaurante[] esq = new Restaurante[meio];
+    Restaurante[] dir = new Restaurante[n - meio];
+
+    for (int i = 0; i < meio; i++)        esq[i] = arr[i];
+    for (int i = meio; i < n; i++)        dir[i - meio] = arr[i];
+
+    esq = mergesortRec(esq, meio, comp, mov);
+    dir = mergesortRec(dir, n - meio, comp, mov);
+
+    return merge(arr, esq, dir, comp, mov);
+    }
+    
+    private Restaurante[] merge(Restaurante[] arr, Restaurante[] esq, Restaurante[] dir, int[] comp, int[] mov) {
+    int i = 0, j = 0, k = 0;
+    while (i < esq.length && j < dir.length) {
+        comp[0]++;
+        int cmp = esq[i].getCidade().compareTo(dir[j].getCidade());
+        if (cmp == 0) cmp = esq[i].getNome().compareTo(dir[j].getNome());
+        if (cmp <= 0) { arr[k++] = esq[i++]; }
+        else          { arr[k++] = dir[j++]; }
+        mov[0]++;
+    }
+    while (i < esq.length) { arr[k++] = esq[i++]; mov[0]++; }
+    while (j < dir.length) { arr[k++] = dir[j++]; mov[0]++; }
+    return arr;
+    }
+
+    public void gerarLogMergesort(int comp, int mov, double tempo) {
+    try {
+        PrintWriter writer = new PrintWriter(new FileWriter("902665_mergesort.txt"));
+        writer.printf("902665\t%d\t%d\t%f", comp, mov, tempo);
+        writer.close();
+    } catch (IOException e) {
+        System.out.println("Erro ao salvar o log");
+    }
+    }
 }
 
-public class Main {
-    public static void main(String[] args){
-        ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
-        Restaurante[] todos = baseDeDados.getRestaurantes();
+public class Mergesort {
+    public static void main(String[] args) {
+    ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
+    ColecaoRestaurante listaParaOrdenar = new ColecaoRestaurante(1000);
+    Scanner sc = new Scanner(System.in);
 
-        Scanner sc = new Scanner(System.in);
-        int idProcurado = sc.nextInt();
-
-        while (idProcurado != -1){
-            for(int i = 0; i < baseDeDados.getTamanho(); i++){
-                if(todos[i].getId() == idProcurado){
-                    System.out.println(todos[i].formatar());
-                    break;
-                }
+    while (sc.hasNextInt()) {
+        int id = sc.nextInt();
+        if (id == -1) break;
+        for (int i = 0; i < baseDeDados.getTamanho(); i++) {
+            if (baseDeDados.getRestaurantes()[i].getId() == id) {
+                listaParaOrdenar.adicionar(baseDeDados.getRestaurantes()[i]);
+                break;
             }
-            idProcurado = sc.nextInt();
         }
-        sc.close();
+    }
+
+    int[] comp = {0}, mov = {0};
+    double inicio = System.nanoTime();
+
+    listaParaOrdenar.mergesort(comp, mov);
+
+    double tempo = (System.nanoTime() - inicio) / 1000000.0;
+
+    for (int i = 0; i < listaParaOrdenar.getTamanho(); i++)
+        System.out.println(listaParaOrdenar.getRestaurantes()[i].formatar());
+
+    listaParaOrdenar.gerarLogMergesort(comp[0], mov[0], tempo);
+    sc.close();
     }
 }
 

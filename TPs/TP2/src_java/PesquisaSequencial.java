@@ -1,6 +1,9 @@
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 class Data {
     private int dia;
@@ -143,9 +146,6 @@ class Restaurante {
 }
 
 class ColecaoRestaurante {
-    public double now() {
-    return (double) System.nanoTime();
-}
     private Restaurante[] restaurantes;
     private int tamanho;
 
@@ -156,6 +156,12 @@ class ColecaoRestaurante {
 
     public int getTamanho(){return tamanho;}
     public Restaurante[] getRestaurantes(){return restaurantes;}
+
+    public void adicionar(Restaurante r) {
+        if (tamanho < restaurantes.length) {
+            restaurantes[tamanho++] = r;
+        }
+    }
 
     public void lerCsv(String path){
         try{
@@ -181,26 +187,64 @@ class ColecaoRestaurante {
         colecao.lerCsv("/tmp/restaurantes.csv");
         return colecao;
     }
+
+    public boolean pesquisaSequencial(String nomeProcurado, int[] contadorComps) {
+    for (int i = 0; i < tamanho; i++) {
+        contadorComps[0]++; // Incrementa o contador de comparações
+        if (restaurantes[i].getNome().equals(nomeProcurado)) {
+            return true;
+        }
+    }
+    return false;
+    }
+    
+    public void gerarLogSequencial(int comp, double tempo){
+    try{
+        PrintWriter writer = new PrintWriter(new FileWriter("902665_sequencial.txt"));
+        writer.printf("902665\t%d\t%.2f", comp, tempo);
+        writer.close();
+    } catch (IOException e){
+        System.out.println("Erro ao salvar o log");
+    }
+    }
 }
 
-public class Main {
-    public static void main(String[] args){
-        ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
-        Restaurante[] todos = baseDeDados.getRestaurantes();
+public class PesquisaSequencial {
+    public static void main(String[] args) {
+    ColecaoRestaurante baseCompleta = ColecaoRestaurante.lerCsv();
+    ColecaoRestaurante listaDePesquisa = new ColecaoRestaurante(1000);
+    Scanner sc = new Scanner(System.in);
 
-        Scanner sc = new Scanner(System.in);
-        int idProcurado = sc.nextInt();
-
-        while (idProcurado != -1){
-            for(int i = 0; i < baseDeDados.getTamanho(); i++){
-                if(todos[i].getId() == idProcurado){
-                    System.out.println(todos[i].formatar());
-                    break;
-                }
+    while (sc.hasNextInt()) {
+        int id = sc.nextInt();
+        if (id == -1) break;
+        for (int i = 0; i < baseCompleta.getTamanho(); i++) {
+            if (baseCompleta.getRestaurantes()[i].getId() == id) {
+                listaDePesquisa.adicionar(baseCompleta.getRestaurantes()[i]);
+                break;
             }
-            idProcurado = sc.nextInt();
         }
-        sc.close();
     }
+    sc.nextLine(); 
+
+    int[] totalComps = {0};
+    double inicio = (double) System.nanoTime();
+
+    String nomeParaPesquisar = sc.nextLine();
+    while (!nomeParaPesquisar.equals("FIM")) {
+        if (listaDePesquisa.pesquisaSequencial(nomeParaPesquisar, totalComps)) {
+            System.out.println("SIM");
+        } else {
+            System.out.println("NAO");
+        }
+        nomeParaPesquisar = sc.nextLine();
+    }
+
+    double fim = (double) System.nanoTime();
+    double tempoTotal = (fim - inicio) / 1000000.0;
+
+    listaDePesquisa.gerarLogSequencial(totalComps[0], tempoTotal);
+    sc.close();
+}
 }
 

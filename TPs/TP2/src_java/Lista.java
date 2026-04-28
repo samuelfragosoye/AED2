@@ -1,6 +1,9 @@
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 class Data {
     private int dia;
@@ -143,9 +146,6 @@ class Restaurante {
 }
 
 class ColecaoRestaurante {
-    public double now() {
-    return (double) System.nanoTime();
-}
     private Restaurante[] restaurantes;
     private int tamanho;
 
@@ -156,6 +156,12 @@ class ColecaoRestaurante {
 
     public int getTamanho(){return tamanho;}
     public Restaurante[] getRestaurantes(){return restaurantes;}
+
+    public void adicionar(Restaurante r) {
+        if (tamanho < restaurantes.length) {
+            restaurantes[tamanho++] = r;
+        }
+    }
 
     public void lerCsv(String path){
         try{
@@ -181,26 +187,111 @@ class ColecaoRestaurante {
         colecao.lerCsv("/tmp/restaurantes.csv");
         return colecao;
     }
+
+public void inserirInicio(Restaurante r) {
+    for (int i = tamanho; i > 0; i--)
+        restaurantes[i] = restaurantes[i - 1];
+    restaurantes[0] = r;
+    tamanho++;
 }
 
-public class Main {
-    public static void main(String[] args){
-        ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
-        Restaurante[] todos = baseDeDados.getRestaurantes();
+public void inserir(Restaurante r, int posicao) {
+    for (int i = tamanho; i > posicao; i--)
+        restaurantes[i] = restaurantes[i - 1];
+    restaurantes[posicao] = r;
+    tamanho++;
+}
 
-        Scanner sc = new Scanner(System.in);
-        int idProcurado = sc.nextInt();
+public void inserirFim(Restaurante r) {
+    restaurantes[tamanho++] = r;
+}
 
-        while (idProcurado != -1){
-            for(int i = 0; i < baseDeDados.getTamanho(); i++){
-                if(todos[i].getId() == idProcurado){
-                    System.out.println(todos[i].formatar());
+public Restaurante removerInicio() {
+    Restaurante r = restaurantes[0];
+    for (int i = 0; i < tamanho - 1; i++)
+        restaurantes[i] = restaurantes[i + 1];
+    tamanho--;
+    return r;
+}
+
+public Restaurante remover(int posicao) {
+    Restaurante r = restaurantes[posicao];
+    for (int i = posicao; i < tamanho - 1; i++)
+        restaurantes[i] = restaurantes[i + 1];
+    tamanho--;
+    return r;
+}
+
+public Restaurante removerFim() {
+    return restaurantes[--tamanho];
+}
+}
+
+public class Lista {
+    public static void main(String[] args) {
+    ColecaoRestaurante baseDeDados = ColecaoRestaurante.lerCsv();
+    ColecaoRestaurante lista = new ColecaoRestaurante(2000);
+    Scanner sc = new Scanner(System.in);
+
+    while (sc.hasNextInt()) {
+        int id = sc.nextInt();
+        if (id == -1) break;
+        for (int i = 0; i < baseDeDados.getTamanho(); i++) {
+            if (baseDeDados.getRestaurantes()[i].getId() == id) {
+                lista.inserirFim(baseDeDados.getRestaurantes()[i]);
+                break;
+            }
+        }
+    }
+
+    int n = sc.nextInt();
+    sc.nextLine();
+    for (int i = 0; i < n; i++) {
+        String linha = sc.nextLine().trim();
+        String[] partes = linha.split(" ");
+        String cmd = partes[0];
+
+        if (cmd.equals("II")) {
+            int id = Integer.parseInt(partes[1]);
+            for (int j = 0; j < baseDeDados.getTamanho(); j++) {
+                if (baseDeDados.getRestaurantes()[j].getId() == id) {
+                    lista.inserirInicio(baseDeDados.getRestaurantes()[j]);
                     break;
                 }
             }
-            idProcurado = sc.nextInt();
+        } else if (cmd.equals("I*")) {
+            int pos = Integer.parseInt(partes[1]);
+            int id  = Integer.parseInt(partes[2]);
+            for (int j = 0; j < baseDeDados.getTamanho(); j++) {
+                if (baseDeDados.getRestaurantes()[j].getId() == id) {
+                    lista.inserir(baseDeDados.getRestaurantes()[j], pos);
+                    break;
+                }
+            }
+        } else if (cmd.equals("IF")) {
+            int id = Integer.parseInt(partes[1]);
+            for (int j = 0; j < baseDeDados.getTamanho(); j++) {
+                if (baseDeDados.getRestaurantes()[j].getId() == id) {
+                    lista.inserirFim(baseDeDados.getRestaurantes()[j]);
+                    break;
+                }
+            }
+        } else if (cmd.equals("RI")) {
+            Restaurante r = lista.removerInicio();
+            System.out.println("(R)" + r.getNome());
+        } else if (cmd.equals("R*")) {
+            int pos = Integer.parseInt(partes[1]);
+            Restaurante r = lista.remover(pos);
+            System.out.println("(R)" + r.getNome());
+        } else if (cmd.equals("RF")) {
+            Restaurante r = lista.removerFim();
+            System.out.println("(R)" + r.getNome());
         }
-        sc.close();
     }
-}
 
+    for (int i = 0; i < lista.getTamanho(); i++)
+        System.out.println(lista.getRestaurantes()[i].formatar());
+
+    sc.close();
+}
+    }
